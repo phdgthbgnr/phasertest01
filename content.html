@@ -1,0 +1,555 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>dbztoei</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="HandheldFriendly" content="true" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Phaser App">
+    <meta name="viewport" content="initial-scale=1 maximum-scale=1 user-scalable=0 minimal-ui" />
+    <style>
+      html, body{
+          margin:0;
+          padding:0;
+          background-color: #000;
+          width: 100%;
+          text-align: center;
+      }
+
+      .franc{
+        visibility: hidden;
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #666;
+        z-index: 20;
+      }
+
+      .franc img{
+        width: 100%;
+        height: auto;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        -webkit-transform: translate(-50%,-50%);
+        -moz-transform: translate(-50%,-50%);
+        -ms-transform: translate(-50%,-50%);
+        -o-transform: translate(-50%,-50%);
+      }
+
+      .franc img.logo{
+        display: block;
+        width:50%;
+        height: auto;
+        left: 50%;
+        top: 40%;
+        transform: translate(-50%,-60%);
+        -webkit-transform: translate(-50%,-60%);
+        -moz-transform: translate(-50%,-60%);
+        -ms-transform: translate(-50%,-60%);
+        -o-transform: translate(-50%,-60%);
+      }
+
+      .dbsgame{
+        position: absolute;
+        top: 0;
+        left:0;
+      }
+
+      .fullscr{
+        width:100%;
+        height: 100%;
+        position: absolute;
+        top:0;
+        left: 0;
+        z-index: 10;
+
+        display: none;
+        opacity: .2;
+      }
+
+      .withloader{
+        background: url(loader.gif) center center no-repeat;
+        background-color: #000000;
+      }
+
+      .displayblock {
+        display: block;
+      }
+
+      .displayvisible {
+        visibility: visible;
+        display: block;
+      }
+
+      .contener{
+        position: absolute;
+        display: block;
+        top: 0;
+        left: 50%;
+        -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translateX(-50%);
+      }
+
+      .contener img.quatretiers{
+        position: relative;
+        width: auto;
+        height: 100%;
+      }
+
+      @media screen and (orientation:portrait){
+        .dbsgame{
+          display: none;
+        }
+        .contener{
+          display: none;
+        }
+      }
+
+      @media screen and (orientation:lanscape){
+        .dbsgame{
+          display: block;
+        }
+        .contener{
+          display: block;
+        }
+      }
+
+      canvas{
+        cursor:default;
+      }
+
+    </style>
+</head>
+<body>
+    <!-- bloc portrait-->
+    <div class="franc" id="franc">
+
+      <img src="data:image/png;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="300" height="130" class="logo" data-src="_commonimg/desktop/j1/dbs_logo.png"/>
+
+      <img src="data:image/png;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" with="320" height="200" class="turndev" data-srcc="_img/turndevice.png"/>
+
+    </div>
+
+    <div class="fullscr withloader" id="fullscr"></div>
+
+    <div id="contener" class="contener">
+      <div id="dbsgame" class="dbsgame"></div>
+    </div>
+    <img src="data:image/png;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" width="1" height="1" data-trck="pixel.gif?r=content" id="trackingcontent"/>
+</body>
+	<script type="text/javascript">
+    var game;
+    var pausedAtpause = false; // enregistre l'état du jeu pour le passage en portrait : remettre le jeu en pause au passage en landscape si en pause avant
+		//var pxratio;
+		(function(){ // CLOSURE -----------------------------------------------------------------------------------------------
+
+      var domn = '',//'https://toeidbzast.entertainmentggd.com/',
+      domnc = '',
+      url = window.location.href,
+      path = url.substr(0,url.lastIndexOf('/'))+'/',
+      nofullscr = true;
+
+      // var reg = new RegExp('/entertainmentggd.com/');
+      // if (reg.test(path)) path = 'https://toeidbsast.entertainmentggd.com/';
+      if (path.match('entertainmentggd.com')){
+        domn = 'https://toeidbsast.entertainmentggd.com/';
+        domnc = path;
+      }
+
+      var $ID = function(id){
+        var elem = null;
+        if (document.getElementById(id) !== null) elem = document.getElementById(id);
+        if(elem == null) console.log('%cERREUR : id "' + id + '" introuvable','color:#ff1d00;font-weight:bold');
+        return elem;
+      },
+
+      addAclass = function (id, classe){
+        $ID(id).classList ? $ID(id).classList.add(classe) : $ID(id).className += ' '+classe;
+      },
+
+      removeAclass = function(id,classe){
+        if (typeof $ID(id).classList.remove === 'function'){
+          $ID(id).classList.remove(classe);
+        }else{
+          $ID(id).className = $ID(id).className.replace(' ' + classe, '').replace(classe, '');
+        }
+      },
+
+      hasAclass = function(id, cls) {
+        var element = $ID(id);
+        return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+      },
+
+      getFullScreen = function(d){
+        if (d.fullscreenElement !== undefined) return d.fullscreenElement;
+        if (d.webkitIsFullScreen !== undefined) return d.webkitIsFullScreen;
+        if (d.mozFullScreenElement !== undefined) return d.mozFullScreenElement;
+        return undefined;
+      },
+
+      lndscp = 0,
+      phaserloaded = false,
+      startgame,
+      docfscr,
+      docElfscr,
+      requestFullScreen,
+      cancelFullScreen,
+      fullscreen = getFullScreen(window.document),
+
+      // load css
+      loadStylesheet = function (src){
+			  //console.log('load stylesheet');
+				if (document.createStyleSheet){
+					document.createStyleSheet(src);
+				}else {
+					var stylesheet = document.createElement('link');
+					stylesheet.href = src;
+					stylesheet.rel = 'stylesheet';
+					stylesheet.type = 'text/css';
+					document.getElementsByTagName('head')[0].appendChild(stylesheet);
+				}
+			},
+
+			// javascript css deferred
+      deferjs = [
+        domn + '_js/manageEvents13.js',
+        //domn + '_test/phaser291custom.js',
+        domn + '_lib/phasercustom281.js',
+        domn + '_src/j1/boot.js',
+        domn + '_src/j1/load.js',
+        domn + '_src/j1/menu.js',
+        domn + '_src/j1/howto.js',
+        domn + '_src/j1/beforeplay1.js',
+        domn + '_src/j1/play1.js',
+        domn + '_src/j1/levels.js',
+        domn + '_src/j1/evolfreezer.js',
+        domn + '_src/j1/loose-1.js',
+        domn + '_src/j1/win.js'
+        //domn+'_css/stylesheet.css'
+      ],
+
+      i = 0,
+
+      // DOM loaded
+      DomLoaded = function(e){
+        // detect orientation @ started
+        if (screen.orientation !== undefined && screen.orientation !== null) detectSorientation()
+        else if (window.orientation !== undefined) detectWorientation();
+        // defering js & css
+        downloadJSAtOnload(initAfter);
+
+        docfscr = window.document;
+        docElfscr = docfscr.documentElement;
+
+        requestFullScreen = docElfscr.requestFullscreen || docElfscr.mozRequestFullScreen || docElfscr.webkitRequestFullScreen || docElfscr.msRequestFullscreen;
+        cancelFullScreen = docfscr.exitFullscreen || docfscr.mozCancelFullScreen || docfscr.webkitExitFullscreen || docfscr.msExitFullscreen;
+
+        document.getElementById('fullscr').addEventListener('click',function(e){
+
+          if (requestFullScreen !== undefined){
+            requestFullScreen.call(docElfscr);
+
+            if (hasAclass('fullscr','displayblock')) removeAclass('fullscr','displayblock');
+          };
+        },true);
+
+        deferImages();
+
+      },
+
+      downloadJSAtOnload = function(callback) {
+
+        // charge JS et CSS
+        var t = deferjs.length-1;
+      	// chargement JS
+        //if (deferjs[i].match('^(.*\.js)$')){
+        if (deferjs[i].match('^(.*\.js)')){
+        var element = document.createElement('script');
+      		element.setAttribute('type','text/javascript');
+      		element.setAttribute('src',deferjs[i]);
+            if (element.addEventListener != undefined){
+              element.addEventListener('load',function(e){
+              //console.log('LOADED : ' + deferjs[i]);
+              i++;
+              if(i <= t) downloadJSAtOnload(callback);
+              if(i > t) {
+                //console.log('JS chargés');
+                callback();
+              }
+      		  });
+      		}else if (element.readyState){ // IE8
+      			element.onreadystatechange = function(){
+      				if(element.readyState == 'loaded' || element.readyState == 'complete') {
+      					//console.log('LOADED : ' + deferjs[i]);
+      					i++;
+      				  if(i <= t) downloadJSAtOnload(callback);
+      					if(i > t) {
+      						//console.log('JS chargés ie8');
+      						callback();
+      					}
+      				}
+      			}
+      		}
+
+      		if(i <= t) document.body.appendChild(element);
+
+      	};
+
+  	    // chargement CSS
+    		if (deferjs[i].match('^(.*\.css)$')){
+    		  loadStylesheet(deferjs[i]);
+    			i++;
+    			if(i <= t) downloadJSAtOnload();
+    			//if(i > t) console.log('CSS chargées');
+
+    		}
+
+
+      }, // fin document loaded
+
+      deferImages = function(){
+        var imgDefer = document.getElementsByTagName('img');
+        for (var i=0; i<imgDefer.length; i++) {
+          if(imgDefer[i].getAttribute('data-src')) {
+            imgDefer[i].setAttribute('src',domn+imgDefer[i].getAttribute('data-src'));
+          }
+          if(imgDefer[i].getAttribute('data-srcc')) {
+            imgDefer[i].setAttribute('src',domnc+imgDefer[i].getAttribute('data-srcc'));
+          }
+        }
+      }
+
+
+      // INIT GLOBAL --------------------------------------------------------------------------------
+			initAfter = function(){
+
+        removeAclass('fullscr','withloader');
+				//console.log('fin chargement');
+
+        phaserloaded = true;
+
+				//if (!window.devicePixelRatio) window.devicePixelRatio = 1;
+				//pxratio = window.devicePixelRatio;
+
+        // chrome FF
+        if(screen.orientation && screen.orientation.angle == 0 && window.innerWidth > window.innerHeight) lndscp = 1;
+        // IE Edge
+        if (screen.orientation === undefined && window.innerWidth > window.innerHeight) lndscp = 1;
+
+        //ipad
+        if (window.orientation && Math.abs(window.orientation) == 90){
+          lndscp = 1;
+        }else{
+          // android
+          if(screen.orientation && (screen.orientation.angle == 90 || screen.orientation.angle == 270)) lndscp = 1;
+        }
+
+
+				if (lndscp == 1 && game === undefined) startgame();
+
+			}, // fin INIT global ---------------------------------------------------------------------------
+
+
+      resizeWind = function(e){
+      }
+
+      startgame = function(){
+
+        if(hasAclass('franc','displayvisible')) removeAclass('franc','displayvisible');
+
+        var hgth = 0;
+        var wwdth = window.outerWidth > 0 ? window.outerWidth : window.innerWidth;
+
+        if(screen && document.documentElement){
+          hgth = document.documentElement.clientWidth == wwdth ? (screen.height > screen.width?screen.width:screen.height): window.innerHeight;
+          hgth = window.outerHeight > 0? hgth : window.innerHeight;
+        }else{
+          hgth = window.innerHeight;
+        }
+
+        if(fullscreen === undefined) hgth = window.innerHeight;
+
+        var wdth = Math.round((hgth*800)/600);
+
+        $ID('contener').setAttribute('style','height:'+ hgth +'px; width:'+ wdth +'px');
+        $ID('dbsgame').setAttribute('style','height:'+ hgth +'px; width:'+ wdth +'px');
+
+        game = new Phaser.Game(wdth, hgth, Phaser.CANVAS, 'dbsgame');
+
+        var wdpr = (window.devicePixelRatio !== undefined && window.devicePixelRatio !== null) ? window.devicePixelRatio: 1;
+
+        var scalewh = parseFloat(hgth/wdth).toFixed(2);
+        game.wdpr = wdpr > 1 ? wdpr*scalewh/(wdpr*scalewh) : wdpr;
+        //game.pratio = wdth/800;
+        game.pratio = wdth/800;
+
+        // path image mobile /desktop
+        var url = window.location.href;
+        var path = url.substr(0,url.lastIndexOf('/'))+'/';
+
+        // var reg = new RegExp('/entertainmentggd.com/');
+        // if (reg.test(path)) path = 'https://toeidbsast.entertainmentggd.com/';
+        if (path.match('entertainmentggd.com')) path = 'https://toeidbsast.entertainmentggd.com/';
+
+        //var wdth = window.innerWidth > window.innerHeight ? window.innerWidth : window.innerHeight;
+        //if(wdth >= 800){
+
+        game.pathSnd = path + '_sounds/j1/' ;
+
+
+        if(document.documentElement.clientWidth != wwdth){
+          // desktop
+          game.pathImg = path + '_commonimg/desktop/j1/';
+          game.pathText = '_img/desktop/';
+          game.pathTrack = '_tracking/desktop/';
+          game.ismobile = false;
+          $ID('trackingcontent').setAttribute('src',domnc+'_tracking/desktop/'+$ID('trackingcontent').getAttribute('data-trck'));
+        }else{
+          // mobile
+          if (document.documentElement.clientWidth < 800) {
+            game.pathImg = path + '_commonimg/mobile/j1/';
+            game.pathText = '_img/mobile/';
+            game.pathTrack = '_tracking/mobile/';
+            game.ismobile = true;
+            $ID('trackingcontent').setAttribute('src',domnc+'_tracking/mobile/'+$ID('trackingcontent').getAttribute('data-trck'));
+          }
+          // assets desktop / tracking mobile
+          if (document.documentElement.clientWidth >= 800) {
+            game.pathImg = path + '_commonimg/desktop/j1/';
+            game.pathText = '_img/desktop/';
+            game.pathTrack = '_tracking/mobile/';
+            $ID('trackingcontent').setAttribute('src',domnc+'_tracking/mobile/'+$ID('trackingcontent').getAttribute('data-trck'));
+            game.ismobile = false;
+          }
+          //game.pratio = wdth/800;
+          game.scalewh =  scalewh;
+
+        }
+
+
+
+        //console.log('ismobile : ' + game.ismobile);
+
+        game.state.add('boot', bootState);
+        game.state.add('load', loadState);
+        game.state.add('menu', menuState);
+        game.state.add('howto', howtoState);
+        game.state.add('beforeplay', beforeState);
+        game.state.add('play', playState);
+        game.state.add('levels', levelsState);
+        game.state.add('evolfrz',evolfrzState);
+        game.state.add('loose', looseState);
+        game.state.add('win', winState);
+
+        game.state.start('boot');
+
+      },
+
+        // detect window orientation
+      detectWorientation = function(e){
+          fullscreen = getFullScreen(window.document);
+          if (Math.abs(window.orientation) == 90){
+            lndscp = 1;
+            // unpause
+            if (game !== undefined && game.paused) {
+              setTimeout(function(){
+                game.paused = pausedAtpause;
+              },1000);
+            }
+            if(hasAclass('franc','displayvisible')) removeAclass('franc','displayvisible');
+            var wwdth = window.outerWidth > 0 ? window.outerWidth : window.innerWidth;
+            if(document.documentElement.clientWidth == wwdth) {
+              if((fullscreen === false || fullscreen === null) && fullscreen !== undefined) addAclass('fullscr','displayblock');
+            };
+            setTimeout(function(){
+              if (game === undefined && phaserloaded == true) startgame();
+            },300);
+          }else{
+            if (game !== undefined) game.paused = true;
+            addAclass('franc','displayvisible');
+            if (hasAclass('fullscr','displayblock')) removeAclass('fullscr','displayblock');
+          }
+        },
+
+        // detect screen orientation
+        detectSorientation = function(e){
+          fullscreen = getFullScreen(window.document);
+          var oangle = screen.orientation.angle;
+          //if (oangle == 90 || oangle == 270) {
+            if(screen.width > screen.height){
+            lndscp = 1;
+            // unpause
+            //if (game !== undefined && game.paused) {
+            if (game !== undefined) {
+              setTimeout(function(){
+                game.paused = pausedAtpause;
+              },1000);
+            }
+            if(hasAclass('franc','displayvisible')) removeAclass('franc','displayvisible');
+            var wwdth = window.outerWidth > 0 ? window.outerWidth : window.innerWidth;
+            if(document.documentElement.clientWidth == wwdth) {
+              if((fullscreen === false || fullscreen === null) && fullscreen !== undefined) addAclass('fullscr','displayblock');
+            };
+            setTimeout(function(){
+              if (game === undefined && phaserloaded == true) startgame();
+            },300);
+          }else{
+            //if(oangle == 0) addAclass('franc','displayvisible'); // uniquement pour desktop
+            if (game !== undefined) game.paused = true;
+            addAclass('franc','displayvisible');
+            if (hasAclass('fullscr','displayblock')) removeAclass('fullscr','displayblock');
+          }
+        };
+
+
+        // si window.orientation existe on l'utilise de preference
+        if (window.addEventListener && (screen.orientation !== undefined && screen.orientation !== null)){
+          //if (screen.orientation) window.addEventListener('orientationchange', detectSorientation, false);
+          window.addEventListener('orientationchange', detectSorientation, false);
+        }else if (window.orientation !== undefined && window.orientation !== null){
+          window.addEventListener('orientationchange', detectWorientation, false);
+        //}else if (window.orientation !== undefined && window.orientation !== null) {
+          //window.onorientationchange = detectWorientation;
+        }else if (window.attachEvent && window.addEventListener === undefined) {// IE8
+          if (screen.orientation) window.attachEvent('onorientationchange', detectSorientation);
+          if (window.orientation && (screen.orientation !== undefined || screen.orientation !== null)) window.attachEvent('onorientationchange', detectWorientation);
+        };
+
+        /*
+        if (window.addEventListener && (window.orientation === undefined || window.orientation === null)){
+          if (screen.orientation) window.addEventListener('orientationchange', detectSorientation, false);
+          if (window.orientation)   window.addEventListener('onorientationchange', detectWorientation, false);
+        }else if (window.orientation !== undefined && window.orientation !== null) {
+          window.onorientationchange = detectWorientation;
+        }else if (window.attachEvent) {// IE8
+          if (screen.orientation) window.attachEvent('onorientationchange', detectSorientation);
+          if (window.orientation) window.attachEvent('onorientationchange', detectWorientation);
+        };
+        */
+
+        if (window.addEventListener){
+          window.addEventListener('DOMContentLoaded', function(){DomLoaded()});
+          window.addEventListener('resize', resizeWind);
+        }else if (window.attachEvent){ // IE8
+          window.attachEvent('onload', function() { DomLoaded(); });
+          window.attachEvent('onresize', resizeWind);
+        }else{
+          window.onload = DomLoaded();
+          window.onreisze = resizeWind();
+        }
+
+    })() // END CLOSURE -----------------------------------------------------------------------------------------------
+	</script>
+</html>

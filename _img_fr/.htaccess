@@ -1,0 +1,49 @@
+Options -MultiViews
+	
+
+<IfModule mod_rewrite.c>
+
+	RewriteEngine on
+	#RewriteBase /test_gz/_js/
+	
+	# webp
+	RewriteCond "%{HTTP:Accept}"	 "\bimage/webp\b"
+	RewriteCond %{REQUEST_FILENAME}.webp	-f
+	RewriteRule ^(.*)\.png$            	"$1\.png\.webp" [L,NC]
+	
+
+
+</IfModule>
+
+
+<IfModule mod_headers.c>
+
+		Header unset ETag
+		FileETag None
+		
+		#Header unset Accept-Ranges
+				
+		# si mod_expires bug sur OVH du Cache-Control
+		# Header set Cache-Control "max-age=216000, private" # 2.5 jours
+		# Header set Cache-Control "max-age=604800, public" # 7 jours
+		Header set Cache-Control: "public, max-age=2592000"
+		
+		Header unset Content-Length
+
+		Header set content-length: totalbytes
+
+		Header set vary: Accept-Encoding
+
+	
+</IfModule>
+
+
+
+<ifModule mod_expires.c>
+	# pagespeed insights n'a pas l'air de bien comprendre
+	ExpiresActive On 
+	#ExpiresDefault A259200
+	ExpiresDefault "access plus 2592000 seconds"
+	#ExpiresByType text/javascript "access plus 2592000 seconds"
+
+</ifModule>

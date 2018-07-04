@@ -1,0 +1,22 @@
+# Header set Access-Control-Allow-Origin "%{HTTP_ORIGIN}e" env=HTTP_ORIGIN
+
+Header set Access-Control-Allow-Origin: "*"
+Header Set Access-Control-Allow-Credentials: "true"
+
+
+<IfModule mod_headers.c>
+
+		Header unset ETag
+		FileETag None
+		
+		# 30 jours
+		Header set Cache-Control: "public, max-age=2592000" 
+		
+</IfModule>		
+
+<ifModule mod_expires.c>
+	# pagespeed insights n'a pas l'air de bien comprendre
+	ExpiresActive On 
+	#ExpiresDefault A259200
+	ExpiresDefault "access plus 2592000 seconds"
+</ifModule>
