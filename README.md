@@ -2,6 +2,8 @@
 
 le moteur du jeu se trouve dans _src/j1/
 
+play1.js :
+
 ````js
 var playState = {
 
